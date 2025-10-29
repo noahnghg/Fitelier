@@ -174,43 +174,6 @@ Fitelier is continuously evolving! Here's what's coming next:
 
 ---
 
-## 👨‍💻 About the Author
+##  Author
 
 **Noah Hong Anh Khoa**
-
-A passionate developer focused on creating applications that improve people's lives. Fitelier represents a combination of technical skills and genuine interest in health and fitness, aimed at making workout tracking accessible and motivating for everyone.
-
-- 💼 [LinkedIn](#) *(Add your link)*
-- 🐙 [GitHub](#) *(Add your link)*
-- 🌐 [Portfolio](#) *(Add your link)*
-
----
-
-## 🤝 Contributing
-
-While Fitelier is primarily a personal project, feedback and suggestions are always welcome! If you encounter any issues or have ideas for improvements, feel free to reach out.
-
----
-
-## 📄 License
-
-© 2025 Noah Hong Anh Khoa. All rights reserved.
-
----
-
-## 🙏 Acknowledgments
-
-- Thanks to the Next.js team for an amazing framework
-- Supabase for making backend development a breeze
-- The open-source community for incredible tools and libraries
-- Everyone who provided feedback during development
-
----
-
-<div align="center">
-
-**[🚀 Start Your Fitness Journey Today](https://fitelier.vercel.app)**
-
-Made with ❤️ and TypeScript
-
-</div>
