@@ -1,73 +1,70 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import ProtectedNavbar from '@/components/shared/protected-navbar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Calendar } from '@/components/ui/calendar';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, Plus, Dumbbell, Heart, Zap, Edit, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, Plus, Dumbbell, Heart, Zap, Edit, Trash2, Loader2 } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, addMonths, subMonths } from 'date-fns';
-
-interface Workout {
-  id: string;
-  time: string;
-  name: string;
-  duration: string;
-  type: 'strength' | 'cardio' | 'flexibility';
-  completed: boolean;
-}
+import { useAuth } from '@/lib/auth';
+import { scheduledWorkoutService } from '@/lib/database';
+import type { ScheduledWorkout } from '@/lib/supabase';
 
 interface WorkoutDay {
   date: Date;
-  workouts: Workout[];
+  workouts: ScheduledWorkout[];
 }
 
 export default function SchedulePage() {
+  const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
-  
-  const [workoutDays, setWorkoutDays] = useState<WorkoutDay[]>([
-    {
-      date: new Date(2025, 9, 27), // October 27, 2025
-      workouts: [
-        { id: '1', time: '07:00 AM', name: 'Morning Strength Training', duration: '45 min', type: 'strength', completed: true },
-        { id: '2', time: '06:00 PM', name: 'Evening Cardio', duration: '30 min', type: 'cardio', completed: false },
-      ],
-    },
-    {
-      date: new Date(2025, 9, 28), // October 28, 2025
-      workouts: [
-        { id: '3', time: '07:00 AM', name: 'Yoga & Stretching', duration: '40 min', type: 'flexibility', completed: false },
-      ],
-    },
-    {
-      date: new Date(2025, 9, 29), // October 29, 2025
-      workouts: [
-        { id: '4', time: '07:00 AM', name: 'Upper Body Strength', duration: '50 min', type: 'strength', completed: false },
-        { id: '5', time: '07:00 PM', name: 'HIIT Cardio', duration: '25 min', type: 'cardio', completed: false },
-      ],
-    },
-    {
-      date: new Date(2025, 9, 30), // October 30, 2025
-      workouts: [
-        { id: '6', time: '07:00 AM', name: 'Recovery & Mobility', duration: '35 min', type: 'flexibility', completed: false },
-      ],
-    },
-    {
-      date: new Date(2025, 9, 31), // October 31, 2025
-      workouts: [
-        { id: '7', time: '07:00 AM', name: 'Full Body Workout', duration: '55 min', type: 'strength', completed: false },
-      ],
-    },
-  ]);
+  const [scheduledWorkouts, setScheduledWorkouts] = useState<ScheduledWorkout[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch scheduled workouts when component mounts or month changes
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/auth/login');
+      return;
+    }
+    
+    if (user) {
+      fetchScheduledWorkouts();
+    }
+  }, [user, authLoading, currentMonth, router]);
+
+  const fetchScheduledWorkouts = async () => {
+    if (!user) return;
+    
+    setLoading(true);
+    const monthStart = startOfMonth(currentMonth);
+    const monthEnd = endOfMonth(currentMonth);
+    
+    const { data, error } = await scheduledWorkoutService.getScheduledWorkouts(
+      user.id,
+      format(monthStart, 'yyyy-MM-dd'),
+      format(monthEnd, 'yyyy-MM-dd')
+    );
+    
+    if (error) {
+      console.error('Error fetching scheduled workouts:', error);
+    } else {
+      setScheduledWorkouts(data || []);
+    }
+    setLoading(false);
+  };
 
   // Helper functions
-  const getWorkoutsForDay = (date: Date): Workout[] => {
-    const dayWorkouts = workoutDays.find(day => isSameDay(day.date, date));
-    return dayWorkouts ? dayWorkouts.workouts : [];
+  const getWorkoutsForDay = (date: Date): ScheduledWorkout[] => {
+    return scheduledWorkouts.filter(workout => 
+      isSameDay(new Date(workout.scheduled_date), date)
+    );
   };
 
   const hasWorkoutsOnDay = (date: Date): boolean => {
@@ -113,17 +110,37 @@ export default function SchedulePage() {
     setCurrentMonth(addMonths(currentMonth, 1));
   };
 
-  const toggleWorkoutCompletion = (workoutId: string) => {
-    setWorkoutDays(prevDays =>
-      prevDays.map(day => ({
-        ...day,
-        workouts: day.workouts.map(workout =>
-          workout.id === workoutId
-            ? { ...workout, completed: !workout.completed }
-            : workout
+  const toggleWorkoutCompletion = async (workoutId: string) => {
+    const workout = scheduledWorkouts.find(w => w.id === workoutId);
+    if (!workout) return;
+
+    const { error } = await scheduledWorkoutService.completeWorkout(workoutId, !workout.completed);
+    
+    if (error) {
+      console.error('Error toggling workout completion:', error);
+    } else {
+      // Update local state
+      setScheduledWorkouts(prev =>
+        prev.map(w =>
+          w.id === workoutId
+            ? { ...w, completed: !w.completed, completed_at: !w.completed ? new Date().toISOString() : undefined }
+            : w
         )
-      }))
-    );
+      );
+    }
+  };
+
+  const getWorkoutName = (workout: ScheduledWorkout): string => {
+    return workout.custom_name || workout.workout?.name || 'Workout';
+  };
+
+  const getWorkoutType = (workout: ScheduledWorkout): 'strength' | 'cardio' | 'flexibility' => {
+    return workout.workout_type || workout.workout?.type || 'strength';
+  };
+
+  const getWorkoutDuration = (workout: ScheduledWorkout): string => {
+    const minutes = workout.duration_minutes || workout.workout?.duration_minutes || 30;
+    return `${minutes} min`;
   };
 
   // Get calendar grid data
@@ -166,20 +183,26 @@ export default function SchedulePage() {
             <CardHeader>
               {/* Month Navigation */}
               <div className="flex items-center justify-between">
-                <Button variant="outline" size="icon" onClick={handlePreviousMonth}>
+                <Button variant="outline" size="icon" onClick={handlePreviousMonth} disabled={loading}>
                   <ChevronLeft className="w-4 h-4" />
                 </Button>
                 <h2 className="text-2xl font-bold">
                   {format(currentMonth, 'MMMM yyyy')}
                 </h2>
-                <Button variant="outline" size="icon" onClick={handleNextMonth}>
+                <Button variant="outline" size="icon" onClick={handleNextMonth} disabled={loading}>
                   <ChevronRight className="w-4 h-4" />
                 </Button>
               </div>
             </CardHeader>
             <CardContent>
-              {/* Calendar Grid */}
-              <div className="grid grid-cols-7 gap-2">
+              {loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin text-sky-600" />
+                </div>
+              ) : (
+                <>
+                  {/* Calendar Grid */}
+                  <div className="grid grid-cols-7 gap-2">
                 {/* Day Headers */}
                 {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
                   <div key={day} className="text-center font-medium text-gray-500 py-2">
@@ -223,15 +246,18 @@ export default function SchedulePage() {
                             )}
                             {/* Show workout type indicators */}
                             <div className="flex justify-center gap-1">
-                              {dayWorkouts.slice(0, 3).map((workout, idx) => (
-                                <div
-                                  key={idx}
-                                  className={`w-2 h-2 rounded-full ${
-                                    workout.type === 'strength' ? 'bg-blue-400' :
-                                    workout.type === 'cardio' ? 'bg-red-400' : 'bg-green-400'
-                                  } ${workout.completed ? 'opacity-100' : 'opacity-50'}`}
-                                />
-                              ))}
+                              {dayWorkouts.slice(0, 3).map((workout, idx) => {
+                                const workoutType = getWorkoutType(workout);
+                                return (
+                                  <div
+                                    key={idx}
+                                    className={`w-2 h-2 rounded-full ${
+                                      workoutType === 'strength' ? 'bg-blue-400' :
+                                      workoutType === 'cardio' ? 'bg-red-400' : 'bg-green-400'
+                                    } ${workout.completed ? 'opacity-100' : 'opacity-50'}`}
+                                  />
+                                );
+                              })}
                               {dayWorkouts.length > 3 && (
                                 <div className="text-xs text-gray-500">+{dayWorkouts.length - 3}</div>
                               )}
@@ -242,7 +268,9 @@ export default function SchedulePage() {
                     </div>
                   );
                 })}
-              </div>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
 
@@ -254,7 +282,7 @@ export default function SchedulePage() {
               </CardHeader>
               <CardContent>
                 <p className="text-3xl font-bold text-sky-600">
-                  {workoutDays.reduce((sum, day) => sum + day.workouts.length, 0)}
+                  {scheduledWorkouts.length}
                 </p>
                 <p className="text-xs text-gray-500 mt-1">Total workouts</p>
               </CardContent>
@@ -266,7 +294,7 @@ export default function SchedulePage() {
               </CardHeader>
               <CardContent>
                 <p className="text-3xl font-bold text-green-600">
-                  {workoutDays.reduce((sum, day) => sum + day.workouts.filter(w => w.completed).length, 0)}
+                  {scheduledWorkouts.filter(w => w.completed).length}
                 </p>
                 <p className="text-xs text-gray-500 mt-1">Finished</p>
               </CardContent>
@@ -277,7 +305,9 @@ export default function SchedulePage() {
                 <CardTitle className="text-sm font-medium text-gray-600">Active Days</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-3xl font-bold text-purple-600">{workoutDays.length}</p>
+                <p className="text-3xl font-bold text-purple-600">
+                  {new Set(scheduledWorkouts.map(w => w.scheduled_date)).size}
+                </p>
                 <p className="text-xs text-gray-500 mt-1">With workouts</p>
               </CardContent>
             </Card>
@@ -288,8 +318,9 @@ export default function SchedulePage() {
               </CardHeader>
               <CardContent>
                 <p className="text-3xl font-bold text-orange-600">
-                  {Math.round((workoutDays.reduce((sum, day) => sum + day.workouts.filter(w => w.completed).length, 0) / 
-                    Math.max(workoutDays.reduce((sum, day) => sum + day.workouts.length, 0), 1)) * 100)}%
+                  {scheduledWorkouts.length > 0 
+                    ? Math.round((scheduledWorkouts.filter(w => w.completed).length / scheduledWorkouts.length) * 100)
+                    : 0}%
                 </p>
                 <p className="text-xs text-gray-500 mt-1">Complete</p>
               </CardContent>
@@ -316,51 +347,61 @@ export default function SchedulePage() {
           <div className="mt-6 space-y-4">
             {selectedDay && getWorkoutsForDay(selectedDay).length > 0 ? (
               <>
-                {getWorkoutsForDay(selectedDay).map((workout) => (
-                  <Card key={workout.id} className={`${workout.completed ? 'bg-green-50 border-green-200' : ''}`}>
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex items-center gap-3">
-                          <div className={`flex items-center gap-2 ${getTypeBadgeColor(workout.type)} px-2 py-1 rounded-md text-xs font-medium`}>
-                            {getTypeIcon(workout.type)}
-                            <span className="capitalize">{workout.type}</span>
+                {getWorkoutsForDay(selectedDay).map((workout) => {
+                  const workoutType = getWorkoutType(workout);
+                  const workoutName = getWorkoutName(workout);
+                  const workoutDuration = getWorkoutDuration(workout);
+                  
+                  return (
+                    <Card key={workout.id} className={`${workout.completed ? 'bg-green-50 border-green-200' : ''}`}>
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex items-center gap-3">
+                            <div className={`flex items-center gap-2 ${getTypeBadgeColor(workoutType)} px-2 py-1 rounded-md text-xs font-medium`}>
+                              {getTypeIcon(workoutType)}
+                              <span className="capitalize">{workoutType}</span>
+                            </div>
+                            <Badge variant={workout.completed ? 'default' : 'secondary'} className={workout.completed ? 'bg-green-600' : ''}>
+                              {workout.completed ? 'Completed' : 'Pending'}
+                            </Badge>
                           </div>
-                          <Badge variant={workout.completed ? 'default' : 'secondary'} className={workout.completed ? 'bg-green-600' : ''}>
-                            {workout.completed ? 'Completed' : 'Pending'}
-                          </Badge>
+                          <div className="flex gap-1">
+                            <Button size="sm" variant="ghost">
+                              <Edit className="w-3 h-3" />
+                            </Button>
+                            <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-700">
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </div>
                         </div>
-                        <div className="flex gap-1">
-                          <Button size="sm" variant="ghost">
-                            <Edit className="w-3 h-3" />
-                          </Button>
-                          <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-700">
-                            <Trash2 className="w-3 h-3" />
-                          </Button>
+                        
+                        <h3 className="font-semibold text-gray-900 mb-2">{workoutName}</h3>
+                        
+                        <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-3.5 h-3.5" />
+                            {workout.scheduled_time || 'Not set'}
+                          </span>
+                          <span>•</span>
+                          <span>{workoutDuration}</span>
                         </div>
-                      </div>
-                      
-                      <h3 className="font-semibold text-gray-900 mb-2">{workout.name}</h3>
-                      
-                      <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
-                        <span className="flex items-center gap-1">
-                          <Clock className="w-3.5 h-3.5" />
-                          {workout.time}
-                        </span>
-                        <span>•</span>
-                        <span>{workout.duration}</span>
-                      </div>
 
-                      <Button
-                        onClick={() => toggleWorkoutCompletion(workout.id)}
-                        size="sm"
-                        variant={workout.completed ? "outline" : "default"}
-                        className={workout.completed ? "border-green-600 text-green-600 hover:bg-green-50" : "bg-sky-600 hover:bg-sky-700"}
-                      >
-                        {workout.completed ? 'Mark as Pending' : 'Mark as Complete'}
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ))}
+                        {workout.notes && (
+                          <p className="text-sm text-gray-600 mb-3 italic">{workout.notes}</p>
+                        )}
+
+                        <Button
+                          onClick={() => toggleWorkoutCompletion(workout.id)}
+                          size="sm"
+                          variant={workout.completed ? "outline" : "default"}
+                          className={workout.completed ? "border-green-600 text-green-600 hover:bg-green-50" : "bg-sky-600 hover:bg-sky-700"}
+                        >
+                          {workout.completed ? 'Mark as Pending' : 'Mark as Complete'}
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </>
             ) : (
               <div className="text-center py-8">

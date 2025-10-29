@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dumbbell, Mail, Lock, AlertCircle } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -22,18 +23,18 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // TODO: Implement actual login API call
-      // const response = await fetch('/api/auth/login', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ email, password }),
-      // });
-      
-      // Temporary: Simulate login
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      router.push('/protected/main');
-    } catch (err) {
-      setError('Invalid email or password');
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (signInError) throw signInError;
+
+      if (data.user) {
+        router.push('/protected/main');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Invalid email or password');
     } finally {
       setLoading(false);
     }

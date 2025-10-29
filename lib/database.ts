@@ -21,6 +21,22 @@ export const profileService = {
     return { data, error }
   },
 
+  async createProfile(userId: string, profileData: { email: string; full_name: string }) {
+    const { data, error } = await supabase
+      .from('profiles')
+      .insert({
+        id: userId,
+        email: profileData.email,
+        full_name: profileData.full_name,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .select()
+      .single()
+    
+    return { data, error }
+  },
+
   async updateProfile(userId: string, updates: Partial<Profile>) {
     const { data, error } = await supabase
       .from('profiles')

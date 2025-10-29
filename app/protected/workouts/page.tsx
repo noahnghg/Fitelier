@@ -1,89 +1,41 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ProtectedNavbar from '@/components/shared/protected-navbar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Plus, Dumbbell, Heart, Zap, Clock, Flame, TrendingUp } from 'lucide-react';
-
-interface Workout {
-  id: string;
-  name: string;
-  description: string;
-  type: 'strength' | 'cardio' | 'flexibility';
-  duration: string;
-  difficulty: 'beginner' | 'intermediate' | 'advanced';
-  calories: number;
-  exercises: number;
-}
+import { Search, Plus, Dumbbell, Heart, Zap, Clock, Flame, TrendingUp, Loader2 } from 'lucide-react';
+import { workoutService } from '@/lib/database';
+import type { Workout } from '@/lib/supabase';
 
 export default function WorkoutsPage() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [workouts] = useState<Workout[]>([
-    {
-      id: '1',
-      name: 'Full Body Strength',
-      description: 'Complete workout targeting all major muscle groups',
-      type: 'strength',
-      duration: '45 min',
-      difficulty: 'intermediate',
-      calories: 420,
-      exercises: 12,
-    },
-    {
-      id: '2',
-      name: 'HIIT Cardio Blast',
-      description: 'High-intensity intervals to burn maximum calories',
-      type: 'cardio',
-      duration: '30 min',
-      difficulty: 'advanced',
-      calories: 380,
-      exercises: 8,
-    },
-    {
-      id: '3',
-      name: 'Yoga Flow',
-      description: 'Improve flexibility and reduce stress',
-      type: 'flexibility',
-      duration: '40 min',
-      difficulty: 'beginner',
-      calories: 210,
-      exercises: 15,
-    },
-    {
-      id: '4',
-      name: 'Upper Body Power',
-      description: 'Focus on chest, back, shoulders, and arms',
-      type: 'strength',
-      duration: '50 min',
-      difficulty: 'advanced',
-      calories: 450,
-      exercises: 10,
-    },
-    {
-      id: '5',
-      name: 'Core Crusher',
-      description: 'Strengthen your core with targeted exercises',
-      type: 'strength',
-      duration: '25 min',
-      difficulty: 'intermediate',
-      calories: 280,
-      exercises: 8,
-    },
-    {
-      id: '6',
-      name: 'Morning Cardio',
-      description: 'Start your day with energizing cardio',
-      type: 'cardio',
-      duration: '35 min',
-      difficulty: 'beginner',
-      calories: 320,
-      exercises: 6,
-    },
-  ]);
+  const [workouts, setWorkouts] = useState<Workout[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    fetchWorkouts();
+  }, []);
+
+  const fetchWorkouts = async () => {
+    try {
+      setLoading(true);
+      const { data, error: fetchError } = await workoutService.getWorkouts({ isPublic: true });
+      
+      if (fetchError) throw fetchError;
+      
+      setWorkouts(data || []);
+    } catch (err: any) {
+      console.error('Error fetching workouts:', err);
+      setError(err.message || 'Failed to load workouts');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -132,7 +84,7 @@ export default function WorkoutsPage() {
     if (searchQuery) {
       filtered = filtered.filter(w =>
         w.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        w.description.toLowerCase().includes(searchQuery.toLowerCase())
+        (w.description && w.description.toLowerCase().includes(searchQuery.toLowerCase()))
       );
     }
     return filtered;
@@ -155,7 +107,7 @@ export default function WorkoutsPage() {
             <CardTitle className="text-xl group-hover:text-sky-600 transition-colors">
               {workout.name}
             </CardTitle>
-            <CardDescription className="mt-2">{workout.description}</CardDescription>
+            <CardDescription className="mt-2">{workout.description || 'No description'}</CardDescription>
           </div>
         </div>
       </CardHeader>
@@ -163,15 +115,15 @@ export default function WorkoutsPage() {
         <div className="grid grid-cols-3 gap-4 mb-4">
           <div className="flex items-center gap-2 text-sm">
             <Clock className="w-4 h-4 text-gray-500" />
-            <span className="text-gray-600">{workout.duration}</span>
+            <span className="text-gray-600">{workout.duration_minutes} min</span>
           </div>
           <div className="flex items-center gap-2 text-sm">
             <Flame className="w-4 h-4 text-orange-500" />
-            <span className="text-gray-600">{workout.calories} cal</span>
+            <span className="text-gray-600">{workout.estimated_calories || 0} cal</span>
           </div>
           <div className="flex items-center gap-2 text-sm">
             <TrendingUp className="w-4 h-4 text-green-500" />
-            <span className="text-gray-600">{workout.exercises} exercises</span>
+            <span className="text-gray-600">{workout.exercise_count} exercises</span>
           </div>
         </div>
         <Button className="w-full bg-linear-to-r from-sky-500 to-sky-600 hover:from-sky-600 hover:to-sky-700">
@@ -180,6 +132,40 @@ export default function WorkoutsPage() {
       </CardContent>
     </Card>
   );
+
+  if (loading) {
+    return (
+      <>
+        <ProtectedNavbar />
+        <div className="min-h-screen bg-linear-to-b from-white via-sky-50 to-white pt-28 pb-12 px-4">
+          <div className="container mx-auto max-w-6xl flex items-center justify-center">
+            <div className="text-center">
+              <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-sky-600" />
+              <p className="text-gray-600">Loading workouts...</p>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  if (error) {
+    return (
+      <>
+        <ProtectedNavbar />
+        <div className="min-h-screen bg-linear-to-b from-white via-sky-50 to-white pt-28 pb-12 px-4">
+          <div className="container mx-auto max-w-6xl">
+            <Card className="border-red-200 bg-red-50">
+              <CardContent className="p-6">
+                <p className="text-red-600">Error: {error}</p>
+                <Button onClick={fetchWorkouts} className="mt-4">Retry</Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>

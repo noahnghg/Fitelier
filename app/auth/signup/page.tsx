@@ -8,6 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dumbbell, Mail, Lock, User, AlertCircle } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { profileService } from '@/lib/database';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -19,6 +21,7 @@ export default function SignupPage() {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -41,18 +44,36 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
-      // TODO: Implement actual signup API call
-      // const response = await fetch('/api/auth/signup', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(formData),
-      // });
-      
-      // Temporary: Simulate signup
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      router.push('/protected/main');
-    } catch (err) {
-      setError('An error occurred. Please try again.');
+      // Step 1: Sign up the user with Supabase Auth
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            full_name: formData.name,
+          },
+          emailRedirectTo: `${window.location.origin}/auth/callback`
+        }
+      });
+
+      if (signUpError) throw signUpError;
+
+      if (data.user) {
+        // Profile will be created automatically by the database trigger
+        // No need for manual profile creation
+        
+        // Check if email confirmation is required
+        if (data.session) {
+          // User is automatically logged in (email confirmation disabled)
+          router.push('/protected/main');
+        } else {
+          // Email confirmation required
+          setSuccess(true);
+        }
+      }
+    } catch (err: any) {
+      console.error('Signup error:', err);
+      setError(err.message || 'An error occurred. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -73,15 +94,39 @@ export default function SignupPage() {
           </Link>
         </div>
 
-        <Card className="shadow-xl border-sky-100">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-bold text-center">Create an account</CardTitle>
-            <CardDescription className="text-center">
-              Start your fitness journey with AI-powered coaching
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+        {success ? (
+          <Card className="shadow-xl border-sky-100">
+            <CardHeader className="space-y-1">
+              <CardTitle className="text-2xl font-bold text-center text-green-600">Check your email!</CardTitle>
+              <CardDescription className="text-center">
+                We've sent you a confirmation link to {formData.email}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center space-y-4">
+                <p className="text-sm text-gray-600">
+                  Click the link in your email to confirm your account and start your fitness journey.
+                </p>
+                <Button
+                  onClick={() => router.push('/auth/login')}
+                  variant="outline"
+                  className="w-full"
+                >
+                  Go to Login
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="shadow-xl border-sky-100">
+            <CardHeader className="space-y-1">
+              <CardTitle className="text-2xl font-bold text-center">Create an account</CardTitle>
+              <CardDescription className="text-center">
+                Start your fitness journey with AI-powered coaching
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-4">
               {error && (
                 <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
                   <AlertCircle className="w-4 h-4" />
@@ -177,16 +222,17 @@ export default function SignupPage() {
                 </Link>
               </p>
             </form>
-          </CardContent>
-          <CardFooter className="flex justify-center">
-            <p className="text-sm text-gray-600">
-              Already have an account?{' '}
-              <Link href="/auth/login" className="text-sky-600 hover:text-sky-700 font-medium">
-                Sign in
-              </Link>
-            </p>
-          </CardFooter>
-        </Card>
+            </CardContent>
+            <CardFooter className="flex justify-center">
+              <p className="text-sm text-gray-600">
+                Already have an account?{' '}
+                <Link href="/auth/login" className="text-sky-600 hover:text-sky-700 font-medium">
+                  Sign in
+                </Link>
+              </p>
+            </CardFooter>
+          </Card>
+        )}
       </div>
     </div>
   );
