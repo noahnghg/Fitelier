@@ -124,26 +124,25 @@ export default function Home() {
           <div className="max-w-4xl mx-auto text-center">
             <Badge variant="secondary" className="inline-flex items-center gap-2 px-4 py-2 bg-sky-100 mb-6">
               <Sparkles className="w-4 h-4 text-sky-600" />
-              <span className="text-sm font-medium text-sky-600">AI-Powered Fitness Coach</span>
+              <span className="text-sm font-medium text-sky-600">AI-Powered Fitness Platform</span>
             </Badge>
             
             <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
               <span className="bg-linear-to-r from-sky-600 to-sky-400 bg-clip-text text-transparent">
-                Transform Your Body
+                Fitelier
               </span>
               <br />
-              <span className="text-gray-900">With AI Precision</span>
+              <span className="text-gray-900">(AI)L-in-one fitness platform</span>
             </h1>
             
             <p className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto">
-              Meet Fitelier, your personal AI fitness coach that adapts to your goals, analyzes your progress, 
-              and creates personalized workout plans that evolve with you.
+              Idea and build by noahnghg
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/auth/signup">
                 <Button size="lg" className="bg-linear-to-r from-sky-500 to-sky-600 hover:from-sky-600 hover:to-sky-700 shadow-lg hover:shadow-xl text-lg font-semibold">
-                  Start Free Trial
+                  Get Started
                 </Button>
               </Link>
               <Button size="lg" variant="outline" className="text-sky-600 border-2 border-sky-600 hover:bg-sky-50 text-lg font-semibold">
@@ -151,25 +150,7 @@ export default function Home() {
               </Button>
             </div>
 
-            {/* Hero Image/Illustration Placeholder */}
-            <div className="mt-16 relative">
-              <div className="bg-linear-to-br from-sky-100 to-sky-200 rounded-3xl p-8 shadow-2xl">
-                <div className="aspect-video bg-white rounded-2xl flex items-center justify-center relative overflow-hidden">
-                  <div className="absolute inset-0 bg-linear-to-br from-sky-100/50 to-transparent"></div>
-                  <div className="relative z-10 text-center">
-                    <Activity className="w-24 h-24 text-sky-400 mx-auto mb-4 animate-pulse" />
-                    <p className="text-gray-500 text-lg">Your AI Coach Interface</p>
-                  </div>
-                  {/* Floating Elements */}
-                  <div className="absolute top-8 left-8 bg-white px-4 py-2 rounded-lg shadow-lg">
-                    <p className="text-sm text-gray-600">🔥 Calories: <span className="font-bold text-sky-600">320</span></p>
-                  </div>
-                  <div className="absolute bottom-8 right-8 bg-white px-4 py-2 rounded-lg shadow-lg">
-                    <p className="text-sm text-gray-600">💪 Reps: <span className="font-bold text-sky-600">12/15</span></p>
-                  </div>
-                </div>
-              </div>
-            </div>
+            
           </div>
         </div>
       </section>
@@ -276,13 +257,13 @@ export default function Home() {
         <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold mb-4">
-              <span className="text-gray-900">Powered by </span>
+              <span className="text-gray-900">Developed by </span>
               <span className="bg-linear-to-r from-sky-600 to-sky-400 bg-clip-text text-transparent">
-                Advanced AI
+                Advanced Technology Stacks
               </span>
             </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Our cutting-edge technology combines machine learning, computer vision, and data science to deliver unmatched results
+              I used state-of-the-art AI and web technologies to build a robust, scalable, and intelligent fitness platform.
             </p>
           </div>
 
@@ -293,9 +274,9 @@ export default function Home() {
                   <Brain className="w-6 h-6 text-sky-600" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">Deep Learning Models</h3>
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">GPT-5</h3>
                   <p className="text-gray-600">
-                    Neural networks trained on millions of workout sessions to understand what works best for every body type and fitness level.
+                    The brain of Fitelier, responsible for generating workout plans, reasoning and suggestions.
                   </p>
                 </div>
               </div>
@@ -305,7 +286,7 @@ export default function Home() {
                   <Activity className="w-6 h-6 text-sky-600" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">Computer Vision</h3>
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">Computer Vision (Future Developments)</h3>
                   <p className="text-gray-600">
                     Real-time pose estimation and movement analysis to provide instant feedback on your exercise form and technique.
                   </p>
@@ -317,7 +298,7 @@ export default function Home() {
                   <TrendingUp className="w-6 h-6 text-sky-600" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">Predictive Analytics</h3>
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">Predictive Analytics (Future Development)</h3>
                   <p className="text-gray-600">
                     Advanced algorithms predict your progress and optimize training loads to help you reach your goals faster and safer.
                   </p>
@@ -329,9 +310,9 @@ export default function Home() {
                   <Zap className="w-6 h-6 text-sky-600" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">Real-Time Adaptation</h3>
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">Recommendation Engine (Future Development)</h3>
                   <p className="text-gray-600">
-                    Dynamic workout adjustments based on your performance, fatigue levels, and recovery status for optimal training every session.
+                    A smart system that suggests workouts, etc. 
                   </p>
                 </div>
               </div>
@@ -342,20 +323,27 @@ export default function Home() {
                 <div className="bg-white rounded-2xl p-8">
                   <div className="space-y-4">
                     <div className="flex items-center justify-between p-4 bg-sky-50 rounded-lg">
-                      <span className="text-gray-700 font-medium">AI Accuracy</span>
-                      <span className="text-sky-600 font-bold">98.5%</span>
+                      <span className="text-gray-700 font-medium">Next.js</span>
+                    <img className="w-8 h-8" src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/nextjs/nextjs-original.svg" />
                     </div>
                     <div className="flex items-center justify-between p-4 bg-sky-50 rounded-lg">
-                      <span className="text-gray-700 font-medium">User Success Rate</span>
-                      <span className="text-sky-600 font-bold">94%</span>
+                      <span className="text-gray-700 font-medium">TypeScript</span>
+
+            <img className="w-8 h-8" src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/typescript/typescript-plain.svg" />
+          
+                      
                     </div>
                     <div className="flex items-center justify-between p-4 bg-sky-50 rounded-lg">
-                      <span className="text-gray-700 font-medium">Active Users</span>
-                      <span className="text-sky-600 font-bold">500K+</span>
+                      <span className="text-gray-700 font-medium">Vercel</span>
+                      
+            <img className="w-8 h-8" src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/vercel/vercel-line-wordmark.svg" />
+          
                     </div>
                     <div className="flex items-center justify-between p-4 bg-sky-50 rounded-lg">
-                      <span className="text-gray-700 font-medium">Workouts Generated</span>
-                      <span className="text-sky-600 font-bold">10M+</span>
+                      <span className="text-gray-700 font-medium">Supabase</span>
+                    
+            <img className="w-8 h-8" src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/supabase/supabase-plain-wordmark.svg" />
+          
                     </div>
                   </div>
                 </div>
@@ -366,20 +354,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* CTA Section */}
-          <div className="mt-20 text-center">
-            <div className="bg-linear-to-r from-sky-500 to-sky-600 rounded-3xl p-12 shadow-2xl">
-              <h3 className="text-3xl md:text-4xl font-bold text-white mb-4">
-                Ready to Transform Your Fitness?
-              </h3>
-              <p className="text-xl text-sky-100 mb-8 max-w-2xl mx-auto">
-                Join thousands of users who have already achieved their fitness goals with Fitelier
-              </p>
-              <Button size="lg" className="px-10 py-4 bg-white text-sky-600 hover:bg-sky-50 shadow-xl hover:shadow-2xl">
-                Get Started Today
-              </Button>
-            </div>
-          </div>
         </div>
       </section>
 
