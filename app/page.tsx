@@ -274,9 +274,9 @@ export default function Home() {
                   <Brain className="w-6 h-6 text-sky-600" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">GPT-5</h3>
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">Gemini 2.5</h3>
                   <p className="text-gray-600">
-                    The brain of Fitelier, responsible for generating workout plans, reasoning and suggestions.
+                    The brain of Fitelier, responsible for answering fitness-related questions from users.
                   </p>
                 </div>
               </div>

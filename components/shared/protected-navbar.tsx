@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Dumbbell, User, Calendar, TrendingUp, Dumbbell as WorkoutIcon, LogOut, Settings } from 'lucide-react';
+import AIAssistant from './ai-assistant';
 
 export default function ProtectedNavbar() {
   const pathname = usePathname();
@@ -83,8 +84,11 @@ export default function ProtectedNavbar() {
             })}
           </div>
 
-          {/* User Menu with Dropdown */}
+          {/* AI Assistant & User Menu */}
           <div className="flex items-center gap-3">
+            {/* AI Assistant Button */}
+            <AIAssistant />
+            
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Avatar className="cursor-pointer hover:ring-2 hover:ring-sky-200 transition-all">

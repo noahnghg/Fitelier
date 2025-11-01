@@ -1,0 +1,185 @@
+import { google } from '@ai-sdk/google';
+import { generateText, convertToCoreMessages, tool } from 'ai';
+import { z } from 'zod';
+import { createClient } from '@supabase/supabase-js';
+import { NextResponse } from 'next/server';
+
+// Server-side Supabase client with service role
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
+// Allow streaming responses up to 30 seconds
+export const maxDuration = 30;
+
+export async function POST(req: Request) {
+  try {
+    const { messages, userId } = await req.json();
+
+    // Verify API key is available
+    if (!process.env.GEMINI_API_KEY) {
+      console.error('GEMINI_API_KEY is not configured');
+      return NextResponse.json(
+        { error: 'AI service is not configured' },
+        { status: 500 }
+      );
+    }
+
+    // System prompt with context about the fitness app
+    const systemPrompt = `You are a helpful AI fitness assistant for Fitelier, a comprehensive fitness tracking application. 
+
+Your capabilities:
+- Provide personalized workout recommendations based on user goals
+- Create detailed workout plans with exercises, sets, and reps
+- Suggest schedules for workouts
+- Give fitness and nutrition advice
+- Help users track their progress
+- Motivate and encourage users on their fitness journey
+
+When creating workout plans:
+- Consider the user's fitness level (beginner, intermediate, advanced)
+- Suggest appropriate exercises with proper form instructions
+- Include warm-up and cool-down routines
+- Provide realistic duration estimates (in minutes)
+
+Available workout types:
+- strength (Strength training)
+- cardio (Cardiovascular exercise)
+- flexibility (Flexibility/Stretching)
+
+Available difficulty levels:
+- beginner
+- intermediate
+- advanced
+
+You have access to tools that can:
+1. Create workout plans in the database
+2. Schedule workouts for specific dates
+3. View existing user workouts
+
+Use these tools when users ask to create or schedule workouts. Be encouraging, motivating, and provide practical advice.`;
+
+    const result = await streamText({
+      model: google('gemini-1.5-flash'),
+      system: systemPrompt,
+      messages: convertToCoreMessages(messages),
+      temperature: 0.7,
+      tools: {
+        createWorkoutPlan: tool({
+          description: 'Create a new workout plan in the database. Use this when the user asks to create or save a workout plan.',
+          parameters: z.object({
+            name: z.string().describe('Name of the workout plan'),
+            description: z.string().describe('Detailed description of the workout'),
+            type: z.enum(['strength', 'cardio', 'flexibility']).describe('Type of workout'),
+            difficulty: z.enum(['beginner', 'intermediate', 'advanced']).describe('Difficulty level'),
+            duration_minutes: z.number().describe('Estimated duration in minutes'),
+          }),
+          execute: async ({ name, description, type, difficulty, duration_minutes }) => {
+            if (!userId) {
+              return { success: false, error: 'User not authenticated' };
+            }
+
+            const { data, error } = await supabaseAdmin
+              .from('workouts')
+              .insert({
+                name,
+                description,
+                type,
+                difficulty,
+                duration_minutes,
+                created_by: userId,
+                is_public: false,
+                estimated_calories: Math.round(duration_minutes * (type === 'cardio' ? 10 : type === 'strength' ? 7 : 4)),
+              })
+              .select()
+              .single();
+
+            if (error) {
+              console.error('Error creating workout:', error);
+              return { success: false, error: error.message };
+            }
+
+            return {
+              success: true,
+              workout: data,
+              message: `Workout plan "${name}" has been created successfully!`,
+            };
+          },
+        }),
+        scheduleWorkout: tool({
+          description: 'Schedule a workout for a specific date and time. Use this when the user wants to plan their workout schedule.',
+          parameters: z.object({
+            workoutName: z.string().describe('Name of the workout to schedule'),
+            scheduledDate: z.string().describe('Date in YYYY-MM-DD format'),
+            scheduledTime: z.string().optional().describe('Time in HH:MM format (optional)'),
+            notes: z.string().optional().describe('Optional notes about the scheduled workout'),
+          }),
+          execute: async ({ workoutName, scheduledDate, scheduledTime, notes }) => {
+            if (!userId) {
+              return { success: false, error: 'User not authenticated' };
+            }
+
+            // Create a custom scheduled workout (without a workout_id)
+            const { data, error } = await supabaseAdmin
+              .from('scheduled_workouts')
+              .insert({
+                user_id: userId,
+                custom_name: workoutName,
+                scheduled_date: scheduledDate,
+                scheduled_time: scheduledTime,
+                notes,
+                completed: false,
+                duration_minutes: 60, // Default duration
+              })
+              .select()
+              .single();
+
+            if (error) {
+              console.error('Error scheduling workout:', error);
+              return { success: false, error: error.message };
+            }
+
+            return {
+              success: true,
+              scheduled: data,
+              message: `Workout "${workoutName}" has been scheduled for ${scheduledDate}${scheduledTime ? ` at ${scheduledTime}` : ''}!`,
+            };
+          },
+        }),
+        getUserWorkouts: tool({
+          description: 'Get a list of the user\'s existing workouts. Use this to check what workouts they already have.',
+          parameters: z.object({}),
+          execute: async () => {
+            if (!userId) {
+              return { success: false, error: 'User not authenticated' };
+            }
+
+            const { data, error } = await supabaseAdmin
+              .from('workouts')
+              .select('id, name, type, difficulty, duration_minutes')
+              .eq('created_by', userId)
+              .order('created_at', { ascending: false })
+              .limit(10);
+
+            if (error) {
+              console.error('Error fetching workouts:', error);
+              return { success: false, error: error.message };
+            }
+
+            return {
+              success: true,
+              workouts: data || [],
+              count: data?.length || 0,
+            };
+          },
+        }),
+      },
+    });
+
+    return result.toTextStreamResponse();
+  } catch (error) {
+    console.error('Chat API error:', error);
+    return new Response('Error processing chat request', { status: 500 });
+  }
+}
